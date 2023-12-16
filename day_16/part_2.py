@@ -1,14 +1,14 @@
-# Very bruteforcey, needs to be rewritten, or at least multiprocessed
 import sys
 
-sys. setrecursionlimit(10000000)
+from multiprocessing import Pool
+
+
+sys.setrecursionlimit(10000000)
 
 with open('input.txt', 'r') as file:
     fc = map(str.strip, file.readlines())
 
-all_lines = list(map(list, fc))
-
-
+all_lines = list(fc)
 max_col = len(all_lines[0]) - 1
 max_row = len(all_lines) - 1
 
@@ -21,9 +21,9 @@ def get_next_position(current_position, current_direction, path):
         return
     if (current_position, current_direction) in path:
         return
-    path.append((current_position, current_direction))
+    path.add((current_position, current_direction))
     current_char = all_lines[row_no][col_no]
-    # TODO: Cleanup, this can be reduced to finding the direction using chars and working form the new direction
+
     if current_char == '.' and current_direction == 'N':
         get_next_position((col_no, row_no - 1), current_direction, path)
     if current_char == '.' and current_direction == 'S':
@@ -65,7 +65,7 @@ def get_next_position(current_position, current_direction, path):
 
 
 def get_total_from_start(start_pos, start_direction):
-    path = []
+    path = set()
     get_next_position(start_pos, start_direction, path=path)
     return len(set(map(lambda p: p[0], path)))
 
@@ -80,4 +80,13 @@ start_positions += tuple(((0, row), 'E') for row in range(max_row + 1))
 # west
 start_positions += tuple(((max_col, row), 'W') for row in range(max_row + 1))
 
-print(max(map(lambda p:get_total_from_start(*p), start_positions)))
+
+if __name__ == '__main__':
+    totals = []
+    pool = Pool()
+    for position, direction in start_positions:
+        pool.apply_async(get_total_from_start, (position, direction), callback=lambda v: totals.append(v))
+    pool.close()
+    pool.join()
+
+    print(max(totals))
